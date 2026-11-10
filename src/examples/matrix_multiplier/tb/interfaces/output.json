@@ -1,0 +1,12 @@
+{
+  "signals": [
+    ".clk_i -> clk [Clock]",
+    ".reset_i -> reset [Reset]",
+    ".valid_o -> valid",
+    ".c_o -> c"
+  ],
+  "parameters": [
+    ".A_ROWS -> ROWS",
+    ".B_COLUMNS -> COLUMNS"
+  ]
+}

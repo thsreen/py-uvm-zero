@@ -1,0 +1,38 @@
+{
+  "simulation": {
+    "toplevel": "axi_xbar_lint",
+    "sources": ["../rtl/axi_demo_cfg_pkg.sv", "../rtl/axi_xbar_lint.sv"],
+    "simulator": "verilator",
+    "compile_args": ["-F", "../rtl/files.f", "--assert", "-Wno-fatal"],
+    "tests": {
+      "smoke": "XbarSmoke"
+    }
+  },
+  "clock": {
+    "signal": "dut.clk_i",
+    "period_ns": 10
+  },
+  "reset": {
+    "signal": "dut.rst_ni",
+    "active_high": false,
+    "duration_factor": 2
+  },
+  "xbar": {
+    "connected_module": "dut",
+    "stimulus": "XbarSmoke",
+    "initiator": {
+      "req": "interfaces/initiator_req.json",
+      "resp": "interfaces/initiator_resp.json",
+      "driver": ["XbarInitiatorReqDriver"]
+    },
+    "target": {
+      "req": "interfaces/target_req.json",
+      "resp": "interfaces/target_resp.json",
+      "driver": ["XbarTargetRespDriver"]
+    }
+  },
+  "settings": {
+    "timeout": 10,
+    "timeout_unit": "us"
+  }
+}

@@ -1,0 +1,22 @@
+"""${class_name}: construction and wiring for ${agent_path}.
+
+Generated from ${config_name}. This is ordinary editable Python.
+The generator preserves it unless --refresh-infra is explicitly requested.
+"""
+from pathlib import Path
+
+from uvm_zero_base import ${base_imports}
+${imports}
+
+
+class ${class_name}(Agent):
+    """Construct components here; connect their callbacks in connect_callbacks()."""
+
+    def __init__(self, name, parent, *, config_dir=None, connected_module=None):
+        config_dir = Path(config_dir) if config_dir is not None else Path(__file__).resolve().parents[3]
+        connected_module = connected_module or ${module}
+${construction}
+
+    def connect_callbacks(self):
+        """Connections from the JSON: each source publishes to the target's on_<source>_callback."""
+${connections}

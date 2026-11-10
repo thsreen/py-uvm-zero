@@ -1,0 +1,38 @@
+{
+  "simulation": {
+    "toplevel": "matrix_multiplier",
+    "sources": ["../rtl/matrix_multiplier.sv"],
+    "simulator": "verilator",
+    "tests": {
+      "smoke": "MatMulTraffic"
+    }
+  },
+  "clock": {
+    "signal": "dut.clk_i",
+    "period_ns": 10
+  },
+  "reset": {
+    "signal": "dut.reset_i",
+    "active_high": true,
+    "duration_factor": 2
+  },
+  "mat_mul": {
+    "connected_module": "dut",
+    "ip": "interfaces/input.json",
+    "op": "interfaces/output.json",
+    "driver": ["MatMulIpDriver"],
+    "monitor": ["MatMulIpMonitor", "MatMulOpMonitor"],
+    "scoreboard": "MatMulScoreboard",
+    "stimulus": "MatMulTraffic",
+    "connections": [
+      "MatMulIpMonitor -> MatMulScoreboard",
+      "MatMulOpMonitor -> MatMulScoreboard"
+    ]
+  },
+  "settings": {
+    "timeout": 100,
+    "timeout_unit": "us",
+    "heartbeat_timeout": 1000,
+    "drain_cycles": 3
+  }
+}

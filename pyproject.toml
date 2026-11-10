@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py-uvm-zero"
+version = "0.1.0"
+description = "Lightweight hierarchical components for cocotb verification"
+requires-python = ">=3.10"
+dependencies = ["cocotb>=2.1.0,<2.2"]
+
+[project.scripts]
+uvm-zero-generate = "uvm_zero_builder.generate:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["uvm_zero_base", "uvm_zero_builder", "common_uvc", "common_uvc.clock", "common_uvc.reset"]
+
+[tool.setuptools.package-data]
+uvm_zero_base = ["makefiles/*.mk"]
+uvm_zero_builder = ["templates/*.tmpl"]
