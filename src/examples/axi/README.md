@@ -8,7 +8,7 @@ Back to the [project overview](../../../README.md). Read the
 [matrix multiplier example](../matrix_multiplier/README.md) first; this one builds
 on it.
 
-![AXI crossbar testbench](tb/tb_diagram.svg)
+![AXI crossbar testbench](tb_impl/tb_diagram.svg)
 
 ## What is here
 
@@ -21,8 +21,18 @@ rtl/
   axi_mux_lint.sv        elaboration-only harnesses, linted but not simulated
   axi_demux_lint.sv
   files.f                the vendored files the harnesses need, in compile order
-tb/                      the testbench, generated from tb/tb.json and lightly filled in
+tb/                      step 1, what you write: tb.json and interfaces/*.json
+tb_generated/            step 2, tb/ plus everything the generator writes
+tb_impl/                 step 3, tb_generated/ with the smoke stimulus filled in
+Makefile                 verify, lint, sim (runs tb_impl/), generated (rebuilds tb_generated/)
 ```
+
+As in the [matrix example](../matrix_multiplier/README.md), the three testbench
+folders are the three stages of building a testbench. `tb/` holds only the JSON a
+user writes. `tb_generated/` is `tb/` plus the untouched generator output, rebuilt
+by `make generated`. `tb_impl/` is `tb_generated/` with the protocol filled in;
+here only `xbar/seqs/xbar_smoke.py` differs so far. The framework tests check the
+three stay in step.
 
 The DUT has four request/response port pairs on each side, as packed arrays of
 AXI request and response structs: `slv_req_i`/`slv_resp_o` where initiators
@@ -35,8 +45,9 @@ Verilator 5.036 or newer is required. From the repository root:
 ```sh
 make axi-verify            # check the vendored RTL against its manifest
 make axi-lint              # lint the mux, demux and crossbar harnesses
-make axi-sim               # every test in tb/tb.json
-make -C src/examples/axi/tb smoke
+make axi-sim               # every test in tb_impl/tb.json
+make -C src/examples/axi/tb_impl smoke
+make -C src/examples/axi generated   # rebuild tb_generated/ from tb/
 ```
 
 ## Current status
@@ -49,12 +60,13 @@ there are no monitors or scoreboard yet.
 
 To grow it into a real testbench:
 
-1. Add monitors to `tb.json`: `XbarInitiatorRespMonitor` on the initiator side and
+1. Add monitors to `tb/tb.json`: `XbarInitiatorRespMonitor` on the initiator side and
    `XbarTargetReqMonitor` on the target side, plus a scoreboard in `xbar`.
 2. Connect both monitors to the scoreboard in `xbar`'s `connections`, then run
-   `uvm-zero-generate tb/tb.json --refresh-infra` to rewire the agents and redraw
-   the diagram. Existing protocol files are kept.
-3. Fill in the request driver (AW, W and AR channels with their handshakes), the
+   `make generated` to see the new skeletons in `tb_generated/`. Copy the JSON into
+   `tb_impl/` and run `uvm-zero-generate tb_impl/tb.json --refresh-infra` there to
+   rewire its agents and redraw its diagram; existing protocol files are kept.
+3. In `tb_impl/`, fill in the request driver (AW, W and AR channels with their handshakes), the
    target response driver (B and R), the monitors, and the scoreboard's routing
    check against the address map in `axi_xbar_lint.sv`.
 

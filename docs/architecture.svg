@@ -1,72 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="580" height="738" viewBox="0 0 580 738" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="580" height="586" viewBox="0 0 580 586" font-family="Helvetica, Arial, sans-serif">
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,1 L10,5 L0,9 z" fill="#546e7a"/></marker></defs>
-<rect width="580" height="738" fill="#ffffff"/>
-<rect x="6" y="6" width="568" height="726" rx="10" fill="none" stroke="#9e9e9e" stroke-dasharray="6 4"/>
+<rect width="580" height="586" fill="#ffffff"/>
+<rect x="6" y="6" width="568" height="574" rx="10" fill="none" stroke="#9e9e9e" stroke-dasharray="6 4"/>
 <text x="20.0" y="25.0" font-size="14" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central">Test  ·  TbEnv</text>
 <text x="560.0" y="25.0" font-size="11" font-weight="normal" fill="#757575" text-anchor="end" dominant-baseline="central">Active agents ▼</text>
-<text x="560.0" y="718.0" font-size="11" font-weight="normal" fill="#757575" text-anchor="end" dominant-baseline="central">Passive agents ▲</text>
-<rect data-id="active" x="150.0" y="44.0" width="280.0" height="266.0" rx="8" fill="#fafafa" stroke="#9e9e9e"/>
-<rect data-id="passive" x="374.5" y="518.0" width="151.0" height="192.0" rx="8" fill="#fafafa" stroke="#9e9e9e"/>
-<rect data-id="clock" x="54.5" y="518.0" width="120.0" height="44.0" rx="8" fill="#f5f5f5" stroke="#9e9e9e"/>
-<rect data-id="reset" x="214.5" y="518.0" width="120.0" height="44.0" rx="8" fill="#f5f5f5" stroke="#9e9e9e"/>
+<rect data-id="agent" x="68.5" y="44.0" width="443.0" height="266.0" rx="8" fill="#fafafa" stroke="#9e9e9e"/>
+<rect data-id="clock" x="150.0" y="514.0" width="120.0" height="44.0" rx="8" fill="#f5f5f5" stroke="#9e9e9e"/>
+<rect data-id="reset" x="310.0" y="514.0" width="120.0" height="44.0" rx="8" fill="#f5f5f5" stroke="#9e9e9e"/>
 <g data-edges="st -&gt; hd">
-<path d="M216.0,168.0 L216.0,146.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="216.0,168.0 216.0,190.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M134.5,168.0 L134.5,146.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="134.5,168.0 134.5,190.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
 </g>
 <g data-edges="hd -&gt; drv">
-<path d="M216.0,242.0 L216.0,220.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="216.0,242.0 216.0,264.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M134.5,242.0 L134.5,220.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="134.5,242.0 134.5,264.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
 </g>
-<g data-edges="drv -&gt; if_in|if_in -&gt; mon">
-<path d="M93.5,341.0 H364.0 M216.0,341.0 L216.0,294.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="364.0,341.0 364.0,294.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="93.5,341.0 93.5,396.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<circle cx="216.0" cy="341.0" r="3" fill="#546e7a"/>
-</g>
-<g data-edges="mon -&gt; sb">
-<path d="M364.0,236.0 H380.7 M380.7,236.0 L380.7,264.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="364.0,236.0 364.0,220.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
-</g>
-<g data-edges="mon -&gt; st">
-<path d="M290.0,248.0 H347.3 M290.0,131.0 V248.0 M347.3,248.0 L347.3,264.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="290.0,131.0 266.0,131.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<g data-edges="drv -&gt; if_in|if_in -&gt; imon">
+<path d="M93.5,332.7 H292.0 M134.5,332.7 L134.5,294.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="292.0,332.7 292.0,294.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="93.5,332.7 93.5,396.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<circle cx="134.5" cy="332.7" r="3" fill="#546e7a"/>
 </g>
 <g data-edges="if_out -&gt; omon">
-<path d="M440.5,471.5 H490.0 M490.0,471.5 L490.0,428.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="440.5,471.5 440.5,534.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M432.5,349.3 H490.0 M490.0,349.3 L490.0,396.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="432.5,349.3 432.5,294.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
 </g>
-<g data-edges="omon -&gt; osb">
-<path d="M440.5,586.0 L440.5,564.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="440.5,586.0 440.5,608.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<g data-edges="imon -&gt; sb|omon -&gt; sb">
+<path d="M311.8,236.0 H453.5 M311.8,236.0 L311.8,264.0 M453.5,236.0 L453.5,264.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="364.0,236.0 364.0,220.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<circle cx="364.0" cy="236.0" r="3" fill="#546e7a"/>
+</g>
+<g data-edges="imon -&gt; st|omon -&gt; st">
+<path d="M208.5,248.0 H411.5 M208.5,131.0 V248.0 M272.2,248.0 L272.2,264.0 M411.5,248.0 L411.5,264.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="208.5,131.0 184.5,131.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<circle cx="272.2" cy="248.0" r="3" fill="#546e7a"/>
 </g>
 <g data-edges="clock -&gt; dut">
-<path d="M114.5,485.0 H266.7 M114.5,485.0 L114.5,518.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="266.7,485.0 266.7,452.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M210.0,474.7 H266.7 M210.0,474.7 L210.0,514.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="266.7,474.7 266.7,452.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
 </g>
 <g data-edges="reset -&gt; dut">
-<path d="M250.5,498.5 H313.3 M250.5,498.5 L250.5,518.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="313.3,498.5 313.3,452.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M313.3,491.3 H370.0 M370.0,491.3 L370.0,514.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="313.3,491.3 313.3,452.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
 </g>
 <g data-edges="if_in -> dut"><polyline points="160.0,412.0 220.0,412.0" fill="none" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow)"/></g>
 <g data-edges="dut -> if_out"><polyline points="360.0,412.0 420.0,412.0" fill="none" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow)"/></g>
-<text x="162.0" y="60.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central" stroke="#fafafa" stroke-width="5" paint-order="stroke">Active agent</text>
-<rect data-id="st" data-kind="stimulus" x="166.0" y="116.0" width="100.0" height="30.0" rx="5" fill="#ede7f6" stroke="#7e57c2"/>
-<text x="216.0" y="131.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Stimulus</text>
-<rect data-id="hd" data-kind="handler" x="166.0" y="190.0" width="100.0" height="30.0" rx="5" fill="#eceff1" stroke="#78909c"/>
-<text x="216.0" y="205.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Handler</text>
-<rect data-id="drv" data-kind="driver" x="166.0" y="264.0" width="100.0" height="30.0" rx="5" fill="#e3f2fd" stroke="#1e88e5"/>
-<text x="216.0" y="279.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Driver</text>
+<text x="80.5" y="60.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central" stroke="#fafafa" stroke-width="5" paint-order="stroke">Agent</text>
+<rect data-id="st" data-kind="stimulus" x="84.5" y="116.0" width="100.0" height="30.0" rx="5" fill="#ede7f6" stroke="#7e57c2"/>
+<text x="134.5" y="131.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Stimulus</text>
+<rect data-id="hd" data-kind="handler" x="84.5" y="190.0" width="100.0" height="30.0" rx="5" fill="#eceff1" stroke="#78909c"/>
+<text x="134.5" y="205.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Handler</text>
+<rect data-id="drv" data-kind="driver" x="84.5" y="264.0" width="100.0" height="30.0" rx="5" fill="#e3f2fd" stroke="#1e88e5"/>
+<text x="134.5" y="279.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Driver</text>
 <rect data-id="sb" data-kind="scoreboard" x="314.0" y="190.0" width="100.0" height="30.0" rx="5" fill="#fff3e0" stroke="#fb8c00"/>
 <text x="364.0" y="205.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Scoreboard</text>
-<rect data-id="mon" data-kind="monitor" x="314.0" y="264.0" width="100.0" height="30.0" rx="5" fill="#e8f5e9" stroke="#43a047"/>
-<text x="364.0" y="279.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Monitor</text>
-<text x="386.5" y="694.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central" stroke="#fafafa" stroke-width="5" paint-order="stroke">Passive agent</text>
-<rect data-id="osb" data-kind="scoreboard" x="390.5" y="608.0" width="100.0" height="30.0" rx="5" fill="#fff3e0" stroke="#fb8c00"/>
-<text x="440.5" y="623.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Scoreboard</text>
-<rect data-id="omon" data-kind="monitor" x="390.5" y="534.0" width="100.0" height="30.0" rx="5" fill="#e8f5e9" stroke="#43a047"/>
-<text x="440.5" y="549.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Monitor</text>
-<text x="114.5" y="540.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="middle" dominant-baseline="central">Clock agent</text>
-<text x="274.5" y="540.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="middle" dominant-baseline="central">Reset agent</text>
+<rect data-id="imon" data-kind="monitor" x="232.5" y="264.0" width="119.0" height="30.0" rx="5" fill="#e8f5e9" stroke="#43a047"/>
+<text x="292.0" y="279.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Input monitor</text>
+<rect data-id="omon" data-kind="monitor" x="369.5" y="264.0" width="126.0" height="30.0" rx="5" fill="#e8f5e9" stroke="#43a047"/>
+<text x="432.5" y="279.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Output monitor</text>
+<text x="210.0" y="536.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="middle" dominant-baseline="central">Clock agent</text>
+<text x="370.0" y="536.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="middle" dominant-baseline="central">Reset agent</text>
 <rect data-id="if_in" data-kind="input" x="27.0" y="396.0" width="133.0" height="32.0" rx="5" fill="#fffde7" stroke="#b59a00"/>
 <text x="93.5" y="412.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Input interface</text>
 <rect data-id="if_out" data-kind="output" x="420.0" y="396.0" width="140.0" height="32.0" rx="5" fill="#fffde7" stroke="#b59a00"/>

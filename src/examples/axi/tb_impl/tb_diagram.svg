@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="774" height="566" viewBox="0 0 774 566" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,1 L10,5 L0,9 z" fill="#546e7a"/></marker></defs>
+<rect width="774" height="566" fill="#ffffff"/>
+<rect x="6" y="6" width="762" height="554" rx="10" fill="none" stroke="#9e9e9e" stroke-dasharray="6 4"/>
+<text x="20.0" y="25.0" font-size="14" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central">Test: smoke  ·  TbEnv</text>
+<text x="754.0" y="25.0" font-size="11" font-weight="normal" fill="#757575" text-anchor="end" dominant-baseline="central">Active agents ▼</text>
+<rect data-id="agent:xbar" x="74.0" y="142.0" width="132.0" height="118.0" rx="8" fill="#fafafa" stroke="#9e9e9e"/>
+<rect data-id="agent:xbar.initiator" x="246.0" y="68.0" width="214.0" height="192.0" rx="8" fill="#fafafa" stroke="#9e9e9e"/>
+<rect data-id="agent:xbar.target" x="500.0" y="68.0" width="200.0" height="192.0" rx="8" fill="#fafafa" stroke="#9e9e9e"/>
+<rect data-id="clock" x="247.0" y="494.0" width="120.0" height="44.0" rx="8" fill="#f5f5f5" stroke="#9e9e9e"/>
+<rect data-id="reset" x="407.0" y="494.0" width="120.0" height="44.0" rx="8" fill="#f5f5f5" stroke="#9e9e9e"/>
+<g data-edges="handler:xbar.initiator -&gt; driver:xbar.initiator:req_driver">
+<path d="M353.0,192.0 L353.0,170.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="353.0,192.0 353.0,214.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g>
+<g data-edges="driver:xbar.initiator:req_driver -&gt; if:xbar.initiator.req">
+<path d="M44.0,282.7 H353.0 M353.0,282.7 L353.0,244.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="44.0,282.7 44.0,388.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g>
+<g data-edges="handler:xbar.target -&gt; driver:xbar.target:resp_driver">
+<path d="M600.0,192.0 L600.0,170.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="600.0,192.0 600.0,214.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g>
+<g data-edges="driver:xbar.target:resp_driver -&gt; if:xbar.target.resp">
+<path d="M92.0,299.3 H600.0 M600.0,299.3 L600.0,244.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="92.0,299.3 92.0,334.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g>
+<g data-edges="clock -&gt; dut">
+<path d="M307.0,454.7 H363.7 M307.0,454.7 L307.0,494.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="363.7,454.7 363.7,432.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g>
+<g data-edges="reset -&gt; dut">
+<path d="M410.3,471.3 H467.0 M467.0,471.3 L467.0,494.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="410.3,471.3 410.3,432.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g>
+<g data-edges="stimulus:xbar:smoke -&gt; handler:xbar.initiator|stimulus:xbar:smoke -&gt; handler:xbar.target">
+<path d="M140.0,56.0 H600.0 M140.0,56.0 L140.0,214.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="353.0,56.0 353.0,140.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="600.0,56.0 600.0,140.0" fill="none" stroke="#546e7a" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<circle cx="353.0" cy="56.0" r="3" fill="#546e7a"/>
+</g>
+<g data-edges="if:xbar.initiator.req -> dut"><polyline points="209.0,404.0 317.0,404.0" fill="none" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow)"/></g>
+<g data-edges="dut -> if:xbar.initiator.resp"><polyline points="457.0,350.0 517.0,350.0" fill="none" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow)"/></g>
+<g data-edges="dut -> if:xbar.target.req"><polyline points="457.0,404.0 517.0,404.0" fill="none" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow)"/></g>
+<g data-edges="if:xbar.target.resp -> dut"><polyline points="257.0,350.0 317.0,350.0" fill="none" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow)"/></g>
+<text x="86.0" y="158.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central" stroke="#fafafa" stroke-width="5" paint-order="stroke">xbar agent</text>
+<rect data-id="stimulus:xbar:smoke" data-kind="stimulus" x="90.0" y="214.0" width="100.0" height="30.0" rx="5" fill="#ede7f6" stroke="#7e57c2"/>
+<text x="140.0" y="229.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">XbarSmoke</text>
+<text x="258.0" y="84.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central" stroke="#fafafa" stroke-width="5" paint-order="stroke">xbar.initiator agent</text>
+<rect data-id="handler:xbar.initiator" data-kind="handler" x="303.0" y="140.0" width="100.0" height="30.0" rx="5" fill="#eceff1" stroke="#78909c"/>
+<text x="353.0" y="155.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Handler</text>
+<rect data-id="driver:xbar.initiator:req_driver" data-kind="driver" x="262.0" y="214.0" width="182.0" height="30.0" rx="5" fill="#e3f2fd" stroke="#1e88e5"/>
+<text x="353.0" y="229.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">XbarInitiatorReqDriver</text>
+<text x="512.0" y="84.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="start" dominant-baseline="central" stroke="#fafafa" stroke-width="5" paint-order="stroke">xbar.target agent</text>
+<rect data-id="handler:xbar.target" data-kind="handler" x="550.0" y="140.0" width="100.0" height="30.0" rx="5" fill="#eceff1" stroke="#78909c"/>
+<text x="600.0" y="155.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">Handler</text>
+<rect data-id="driver:xbar.target:resp_driver" data-kind="driver" x="516.0" y="214.0" width="168.0" height="30.0" rx="5" fill="#e3f2fd" stroke="#1e88e5"/>
+<text x="600.0" y="229.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">XbarTargetRespDriver</text>
+<text x="307.0" y="516.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="middle" dominant-baseline="central">Clock agent</text>
+<text x="467.0" y="516.0" font-size="12" font-weight="bold" fill="#212121" text-anchor="middle" dominant-baseline="central">Reset agent</text>
+<rect data-id="if:xbar.initiator.req" data-kind="input" x="20.0" y="388.0" width="189.0" height="32.0" rx="5" fill="#fffde7" stroke="#b59a00"/>
+<text x="114.5" y="404.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">initiator.req interface</text>
+<rect data-id="if:xbar.initiator.resp" data-kind="output" x="517.0" y="334.0" width="196.0" height="32.0" rx="5" fill="#fffde7" stroke="#b59a00"/>
+<text x="615.0" y="350.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">initiator.resp interface</text>
+<rect data-id="if:xbar.target.req" data-kind="output" x="517.0" y="388.0" width="196.0" height="32.0" rx="5" fill="#fffde7" stroke="#b59a00"/>
+<text x="615.0" y="404.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">target.req interface</text>
+<rect data-id="if:xbar.target.resp" data-kind="input" x="68.0" y="334.0" width="189.0" height="32.0" rx="5" fill="#fffde7" stroke="#b59a00"/>
+<text x="162.5" y="350.0" font-size="12" font-weight="normal" fill="#212121" text-anchor="middle" dominant-baseline="central">target.resp interface</text>
+<rect data-id="dut" x="317.0" y="322.0" width="140.0" height="110.0" rx="8" fill="#37474f" stroke="#263238"/>
+<text x="387.0" y="369.0" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">DUT</text>
+<text x="387.0" y="387.0" font-size="11" font-weight="normal" fill="#eceff1" text-anchor="middle" dominant-baseline="central">axi_xbar_lint</text>
+</svg>

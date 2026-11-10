@@ -1149,8 +1149,24 @@ async def the_readme_architecture_diagram_is_current(dut):
     path = Path(__file__).resolve().parents[1] / "docs" / "architecture.svg"
     assert path.read_text() == render(architecture()), "run: python -m uvm_zero_builder.diagram docs/architecture.svg"
     _, rects, edges = svg_layout(path.read_text())
-    assert {"mon -> st", "mon -> sb", "drv -> if_in", "if_out -> omon"} <= edges
-    assert rects["active"][3] < rects["dut"][1] < rects["dut"][3] < rects["passive"][1]
+    assert {"imon -> sb", "omon -> sb", "imon -> st", "drv -> if_in", "if_out -> omon"} <= edges
+    assert rects["agent"][3] < rects["dut"][1]
+
+
+@cocotb.test()
+async def the_readme_diagram_is_the_matrix_testbench_renamed(dut):
+    from uvm_zero_builder.diagram import ARCHITECTURE_FROM_MATRIX, architecture, from_plan
+    root = Path(__file__).resolve().parents[1]
+    matrix = from_plan(load_plan(root / "src/examples/matrix_multiplier/tb_impl/tb.json"))
+    generic = architecture()
+    rename = ARCHITECTURE_FROM_MATRIX
+    assert {(rename[a], rename[b]) for a, b in matrix.edges} == set(generic.edges)
+    assert {rename[name]: flag for name, _, flag in matrix.interfaces} == {name: flag for name, _, flag in generic.interfaces}
+    shape = {rename[box.id]: (box.active, box.simple, [[[rename[p.id] for p in row] for row in section]
+                                                        for section in box.sections()])
+             for box in matrix.boxes}
+    assert shape == {box.id: (box.active, box.simple, [[[p.id for p in row] for row in section]
+                                                        for section in box.sections()]) for box in generic.boxes}
 
 
 def diagram_cases():
@@ -1158,7 +1174,8 @@ def diagram_cases():
     from uvm_zero_builder.diagram import architecture, from_plan
     root = Path(__file__).resolve().parents[1] / "src" / "examples"
     yield "architecture", architecture()
-    for config in ("matrix_multiplier/tb_impl/tb.json", "matrix_multiplier/tb/tb.json", "axi/tb/tb.json"):
+    for config in ("matrix_multiplier/tb_impl/tb.json", "matrix_multiplier/tb_generated/tb.json",
+                   "axi/tb_impl/tb.json", "axi/tb_generated/tb.json"):
         yield config, from_plan(load_plan(root / config))
     yield "generator fixture", from_plan(load_plan(generator_project() / "tb.json"))
 
@@ -1166,8 +1183,8 @@ def diagram_cases():
 @cocotb.test()
 async def every_diagram_passes_its_audit(dut):
     # Crossings each diagram may have at most; a change that adds any fails here.
-    budget = {"architecture": 0, "matrix_multiplier/tb_impl/tb.json": 1, "matrix_multiplier/tb/tb.json": 1,
-              "axi/tb/tb.json": 0, "generator fixture": 12}
+    budget = {"architecture": 1, "matrix_multiplier/tb_impl/tb.json": 1, "matrix_multiplier/tb_generated/tb.json": 1,
+              "axi/tb_impl/tb.json": 0, "axi/tb_generated/tb.json": 0, "generator fixture": 12}
     from uvm_zero_builder.diagram import check
     for name, diagram in diagram_cases():
         report = check(diagram)
@@ -1223,3 +1240,41 @@ async def clock_and_reset_go_where_the_wiring_is_cleanest(dut):
         for box in diagram.boxes:
             if not box.simple:
                 assert layout.row_of[box.id] == ("top" if box.active else "bottom"), (name, box.id)
+
+
+def example_tree(directory):
+    """{relative path: bytes} for every source file of an example testbench folder."""
+    skip = {"__pycache__", "sim_build"}
+    return {path.relative_to(directory): path.read_bytes() for path in directory.rglob("*")
+            if path.is_file() and not skip & set(path.parts) and not path.name.startswith("results")}
+
+
+@cocotb.test()
+async def each_example_keeps_tb_generated_and_impl_in_step(dut):
+    """tb/ holds only the user's JSON, tb_generated/ is tb/ plus a fresh generation,
+    and tb_impl/ differs from tb_generated/ only in the protocol classes and stimuli."""
+    import shutil
+    import tempfile
+    examples = Path(__file__).resolve().parents[1] / "src" / "examples"
+    for example in ("matrix_multiplier", "axi"):
+        root = examples / example
+        inputs = example_tree(root / "tb")
+        assert inputs and all(path.suffix == ".json" for path in inputs), (example, sorted(map(str, inputs)))
+
+        generated = example_tree(root / "tb_generated")
+        scratch = Path(tempfile.mkdtemp()) / "tb"
+        shutil.copytree(root / "tb", scratch)
+        (scratch.parent / "rtl").symlink_to(root / "rtl")    # tb.json names its sources as ../rtl/...
+        with redirect_stdout(io.StringIO()):
+            assert generate_main([str(scratch / "tb.json")]) == 0
+        fresh = example_tree(scratch)
+        stale = sorted(str(path) for path in set(fresh) | set(generated) if fresh.get(path) != generated.get(path))
+        assert not stale, f"{example}/tb_generated is out of date ({stale}); run: make generated"
+
+        implemented = example_tree(root / "tb_impl")
+        assert set(implemented) == set(generated), (example, set(implemented) ^ set(generated))
+        for path, content in generated.items():
+            protocol = path.parent.name in ("agent", "seqs") and not path.name.endswith("_txn.py")
+            if not protocol:
+                assert implemented[path] == content, f"{example}/tb_impl/{path} differs from tb_generated"
+        assert any(implemented[path] != content for path, content in generated.items()), example

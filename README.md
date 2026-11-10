@@ -35,6 +35,8 @@ py-uvm-zero keeps the parts of UVM that pay off and drops the rest:
 
 ![Testbench architecture](docs/architecture.svg)
 
+This is the [matrix multiplier example](src/examples/matrix_multiplier/README.md)
+with generic names.
 
 | py-uvm-zero | UVM | Role |
 | --- | --- | --- |
@@ -55,7 +57,7 @@ The generator draws this diagram for every testbench, as `tb_diagram.svg` next t
 its `tb.json`. Each drawing checks itself for overlapping boxes, wires through
 components and connections that don't join up. See the
 [matrix multiplier](src/examples/matrix_multiplier/tb_impl/tb_diagram.svg) and
-[AXI crossbar](src/examples/axi/tb/tb_diagram.svg) diagrams.
+[AXI crossbar](src/examples/axi/tb_impl/tb_diagram.svg) diagrams.
 
 ## Setup
 
@@ -95,8 +97,18 @@ make            # compile, framework tests, AXI lint and smoke test, matrix test
    scoreboard's checks, and the stimulus's `run()`.
 5. Run it with the generated Makefile: `make`, `make <test>` or `make tests`.
 
-The smallest complete example is the matrix multiplier's
-[tb.json](src/examples/matrix_multiplier/tb_impl/tb.json).
+Each example keeps these stages in three folders, so you can see each one:
+
+| Folder | Stage | Contents |
+| --- | --- | --- |
+| `tb/` | Steps 1-2 | Only what you write: `tb.json` and the interface files. |
+| `tb_generated/` | Step 3 | `tb/` plus the untouched generator output, diagram and Makefile included. |
+| `tb_impl/` | Step 4 | `tb_generated/` with the protocol filled in; this is what runs. |
+
+`make generated` rebuilds every `tb_generated/` from its `tb/`, and the framework
+tests fail if the three folders drift apart. The smallest complete example is the
+[matrix multiplier](src/examples/matrix_multiplier/README.md); start from its
+[tb.json](src/examples/matrix_multiplier/tb/tb.json).
 
 ## What goes where
 
@@ -106,7 +118,7 @@ src/
   uvm_zero_builder/     generator: JSON checking, code and Makefile templates, diagram drawing
   common_uvc/           clock and reset agents used by every TbEnv
   examples/
-    matrix_multiplier/  one agent, generated (tb/) and filled in (tb_impl/)
+    matrix_multiplier/  one agent around a matrix multiplier
     axi/                a parent agent with two child agents around a vendored AXI crossbar
 tests/                  the framework's own simulations
 docs/                   the architecture diagram above

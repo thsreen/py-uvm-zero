@@ -1,0 +1,7 @@
+{
+  "signals": [
+    ".clk_i -> clk [Clock]",
+    ".rst_ni -> rst_n [Reset]",
+    ".slv_resp_o -> resp"
+  ]
+}

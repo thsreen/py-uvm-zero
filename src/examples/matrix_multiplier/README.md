@@ -14,12 +14,27 @@ Back to the [project overview](../../../README.md). Background: the
 
 ```text
 rtl/matrix_multiplier.sv    the DUT: C = A x B, with valid in and valid out
-tb/                         exactly what the generator writes from tb/tb.json
-tb_impl/                    the same files with the protocol filled in
+tb/                         step 1, what you write: tb.json and interfaces/*.json
+tb_generated/               step 2, tb/ plus everything the generator writes
+tb_impl/                    step 3, tb_generated/ with the protocol filled in
+Makefile                    make sim runs tb_impl/; make generated rebuilds tb_generated/
 ```
 
-`tb/` keeps every protocol method raising `NotImplementedError`, so it shows the
-generated starting point. `tb_impl/` is that starting point after a user's work:
+The three folders are the three stages of building a testbench:
+
+1. **`tb/`** holds only the inputs a user writes: `tb.json`, describing the agent,
+   its components, connections and tests, and one JSON file per interface.
+2. **`tb_generated/`** is `tb/` after `uvm-zero-generate tb.json`: the agent wiring,
+   protocol skeletons whose methods raise `NotImplementedError`, the Txn classes, the
+   stimulus, the Makefile and `tb_diagram.svg`. It is never edited by hand;
+   `make generated` rebuilds it from `tb/`.
+3. **`tb_impl/`** is a copy of `tb_generated/` with the protocol filled in. Only the
+   driver, monitors, scoreboard and stimulus differ; the wiring, Txn classes,
+   Makefile and diagram are identical.
+
+The framework tests check all three stay in step: `tb/` holds only JSON,
+`tb_generated/` matches a fresh generation, and `tb_impl/` differs from it only in
+protocol files. The protocol filled in for `tb_impl/`:
 
 - **`MatMulIpDriver`** presents A and B with `valid` for one clock, changing them
   on the falling edge, then drops `valid`. At reset, `drive_idle()` writes
@@ -32,28 +47,34 @@ generated starting point. `tb_impl/` is that starting point after a user's work:
 - **`MatMulTraffic`** queues 20 random requests with a random 0-4 cycle gap, sized
   from the DUT's parameters.
 
-Compare the two directories to see exactly what a user writes:
-`diff -r tb/mat_mul tb_impl/mat_mul`.
+Compare the last two folders to see exactly what a user writes:
+`diff -r tb_generated/mat_mul tb_impl/mat_mul`.
 
 ## Running it
 
 From the repository root:
 
 ```sh
-make matrix-sim                                      # every test in tb_impl/tb.json
-make -C src/examples/matrix_multiplier/tb_impl smoke  # one test
+make matrix-sim                                       # every test in tb_impl/tb.json
+make -C src/examples/matrix_multiplier/tb_impl smoke   # one test
 make -C src/examples/matrix_multiplier/tb_impl SIM=icarus
+make -C src/examples/matrix_multiplier generated       # rebuild tb_generated/ from tb/
 ```
+
+To follow the flow yourself, copy `tb/` somewhere, run `uvm-zero-generate tb.json`
+in the copy, and compare the result with `tb_generated/`.
 
 Change the run without touching code:
 
 - **Matrix sizes and widths:** add `"parameters": {"A_ROWS": 4}` under
-  `simulation` in `tb_impl/tb.json`. The traffic and the reference model read
-  the sizes back from the elaborated DUT, so nothing else changes.
+  `simulation` in `tb_impl/tb.json` (and in `tb/tb.json`, to keep the stages
+  alike). The traffic and the reference model read the sizes back from the
+  elaborated DUT, so nothing else changes.
 - **Request count and gaps:** point `TB_SEQUENCE_CONFIG` at a file holding
   `{"count": 100, "max_delay": 0}`.
-- **Regenerate the starting point:** `uvm-zero-generate src/examples/matrix_multiplier/tb/tb.json --check`
-  reports every file as present; delete one and run without `--check` to get it back.
+- **Change the topology:** edit `tb/`, run `make generated`, then copy the new
+  wiring into `tb_impl/` with `uvm-zero-generate tb_impl/tb.json --refresh-infra`
+  after copying the same JSON there. Your protocol files are kept.
 
 ## Why the testbench looks like this
 

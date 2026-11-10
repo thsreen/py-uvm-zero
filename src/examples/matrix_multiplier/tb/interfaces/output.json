@@ -6,7 +6,7 @@
     ".c_o -> c"
   ],
   "parameters": [
-    ".A_ROWS -> ROWS",
-    ".B_COLUMNS -> COLUMNS"
+    ".A_ROWS -> rows",
+    ".B_COLUMNS -> columns"
   ]
 }

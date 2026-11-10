@@ -7,9 +7,9 @@
     ".b_i -> b"
   ],
   "parameters": [
-    ".DATA_WIDTH -> data_width",
-    ".A_ROWS -> rows",
-    ".A_COLUMNS_B_ROWS -> inner",
-    ".B_COLUMNS -> columns"
+    ".DATA_WIDTH -> DATA_WIDTH",
+    ".A_ROWS -> A_ROWS",
+    ".A_COLUMNS_B_ROWS -> A_COLUMNS_B_ROWS",
+    ".B_COLUMNS -> B_COLUMNS"
   ]
 }

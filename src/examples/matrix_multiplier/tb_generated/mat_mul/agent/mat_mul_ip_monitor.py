@@ -21,7 +21,7 @@ class MatMulIpMonitor(Monitor):
         and publish_<interface>() refreshes them before delivering.
         """
         # self.interfaces['ip']: signals valid, a, b, clk [Clock], reset [Reset]
-        #     parameters (constants from the DUT): data_width, rows, inner, columns
+        #     parameters (constants from the DUT): DATA_WIDTH, A_ROWS, A_COLUMNS_B_ROWS, B_COLUMNS
         # Sample at the clock edge from the observed values, then publish; for example:
         #     await RisingEdge(self.interfaces['ip'].clk)
         #     if self.interfaces['ip'].values.valid == 1:

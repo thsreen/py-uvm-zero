@@ -143,18 +143,33 @@ def from_plan(plan):
 
 
 def architecture():
-    """The generic diagram for the README: one active and one passive agent."""
+    """The README's diagram: the matrix multiplier testbench with generic names.
+
+    One agent with a stimulus, its handler and a driver on the input interface, a
+    monitor on each interface, and one scoreboard fed by both monitors. A test keeps
+    it the same shape as src/examples/matrix_multiplier/tb_impl/tb_diagram.svg.
+    """
     stimulus, handler = Part("st", "Stimulus", "stimulus"), Part("hd", "Handler", "handler")
-    driver, monitor = Part("drv", "Driver", "driver"), Part("mon", "Monitor", "monitor")
+    driver = Part("drv", "Driver", "driver")
+    in_monitor, out_monitor = Part("imon", "Input monitor", "monitor"), Part("omon", "Output monitor", "monitor")
     scoreboard = Part("sb", "Scoreboard", "scoreboard")
-    out_monitor, out_scoreboard = Part("omon", "Monitor", "monitor"), Part("osb", "Scoreboard", "scoreboard")
-    boxes = [Box("active", "Active agent", True, [stimulus], handler, [driver], [monitor], [scoreboard]),
-             Box("passive", "Passive agent", False, monitors=[out_monitor], scoreboards=[out_scoreboard]),
+    boxes = [Box("agent", "Agent", True, [stimulus], handler, [driver], [in_monitor, out_monitor], [scoreboard]),
              Box("clock", "Clock agent", True, simple=True), Box("reset", "Reset agent", True, simple=True)]
-    edges = [("st", "hd"), ("hd", "drv"), ("drv", "if_in"), ("if_in", "mon"), ("mon", "sb"), ("mon", "st"),
-             ("if_out", "omon"), ("omon", "osb"), ("clock", "dut"), ("reset", "dut")]
+    edges = [("st", "hd"), ("hd", "drv"), ("drv", "if_in"),
+             ("if_in", "imon"), ("if_out", "omon"),
+             ("imon", "sb"), ("omon", "sb"), ("imon", "st"), ("omon", "st"),
+             ("clock", "dut"), ("reset", "dut")]
     interfaces = [("if_in", "Input interface", True), ("if_out", "Output interface", False)]
     return Diagram("Test  ·  TbEnv", "DUT", boxes, interfaces, edges)
+
+
+# The matrix multiplier's ids for each part of architecture(), for the test that keeps them alike.
+ARCHITECTURE_FROM_MATRIX = {
+    "stimulus:mat_mul:traffic": "st", "handler:mat_mul": "hd", "driver:mat_mul:ip_driver": "drv",
+    "monitor:mat_mul:ip_monitor": "imon", "monitor:mat_mul:op_monitor": "omon",
+    "scoreboard:mat_mul:scoreboard": "sb", "if:mat_mul.ip": "if_in", "if:mat_mul.op": "if_out",
+    "agent:mat_mul": "agent", "dut": "dut", "clock": "clock", "reset": "reset",
+}
 
 
 # ---------------------------------------------------------------- layout
