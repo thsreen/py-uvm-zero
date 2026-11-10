@@ -1,16 +1,16 @@
-"""Generate editable agent infrastructure, protocol skeletons, connection docs and a Makefile.
+"""Generate editable agent infrastructure, protocol skeletons, a testbench diagram and a Makefile.
 
 Normal generation creates missing files only. --refresh-infra deliberately replaces
-agent/infra files, the connection document and the Makefile, never protocol implementations.
+agent/infra files, the diagram and the Makefile, never protocol implementations.
 --check validates and previews all output without writing anything.
 """
 import argparse
 from importlib.resources import files as resources
 from pathlib import Path
-import re
 from string import Template
 import sys
 
+from .diagram import check, from_plan, render
 from .plan import COMPONENTS, ConfigError, agent_class, agent_module, callbacks, interface_names, load_plan, module_for
 
 _ATTRIBUTES = {"driver": "drivers", "monitor": "monitors", "scoreboard": "scoreboards", "stimulus": "stimuli"}
@@ -314,190 +314,8 @@ def _agent(node, directory, config_name):
                                construction="\n".join(construction), connections="\n".join(connections))
 
 
-def _tests_of(tests, class_name):
-    return [name for name, value in tests.items() if value == class_name]
-
-
-def _member_lines(node, tests):
-    lines = []
-    for flag in COMPONENTS:
-        for key, value, keys in node.members(flag):
-            name = value if isinstance(value, str) else flag.capitalize()
-            uses = (", using " + ", ".join(f"`{interface}`" for interface in keys)) if keys else ""
-            runs = ""
-            if flag == "stimulus":
-                names = _tests_of(tests, value)
-                runs = f", run by test {', '.join(names)}" if names else ", run by another stimulus"
-            lines.append(f"- {flag.capitalize()} `{key}`: `{name}`{uses}{runs}")
-    return lines
-
-
-def _connection_lines(node, tests):
-    lines = []
-    for key, value, _ in node.members("stimulus"):
-        names = _tests_of(tests, value)
-        if names:
-            lines.append(f"TbEnv (test {', '.join(names)}) -> stimuli['{key}'].execute()")
-        for prefix, child in node.subtree():
-            for driver, _, _ in child.members("driver"):
-                lines.append(f"stimuli['{key}'].queue() -> {prefix}handler queue -> {prefix}{driver}")
-    for key, _, keys in node.members("driver"):
-        for interface in keys:
-            lines.append(f"handler queue -> {key}.drive() -> {interface} signals -> DUT (writes only changes)")
-    for key, _, keys in node.members("monitor"):
-        for interface, name in interface_names(keys).items():
-            lines.append(f"DUT -> {interface} signals -> {key}.publish_{name}() -> {interface}.values")
-    for route in node.routes():
-        via = " (scoreboard.callback: history, heartbeat)" if route.target_kind == "scoreboard" else ""
-        indices = f" with indices {route.indices}" if route.indices else ""
-        lines.append(f"{route.source_prefix}{route.source_key} ({route.source}) -> "
-                     f"{route.target_prefix}{route.target_key}.{route.callback}{via}{indices}")
-    return lines
-
-
-_KINDS = {"driver": "drv", "monitor": "mon", "scoreboard": "sb", "stimulus": "st"}
-
-
-def _node(*parts):
-    """A Mermaid node id: "n_" plus word characters, never a Mermaid keyword such as end."""
-    return "n_" + "_".join(re.sub(r"\W", "_", part) for part in parts if part)
-
-
-def _agent_nodes(node, lines, indent):
-    """One box per agent, UVM style: its stimuli, handler, drivers, monitors, scoreboards, child agents."""
-    lines.append(f'{indent}subgraph {_node("agent", node.where)}["{node.name} agent"]')
-    inner = indent + "  "
-    if any(True for _ in node.members("driver")):
-        lines.append(f'{inner}{_node("handler", node.where)}["Handler"]')
-    for flag in ("stimulus", "driver", "monitor", "scoreboard"):
-        for key, value, _ in node.members(flag):
-            name = value if isinstance(value, str) else flag.capitalize()
-            lines.append(f'{inner}{_node(_KINDS[flag], node.where, key)}["{name}"]')
-    for child in node.children:
-        _agent_nodes(child, lines, inner)
-    lines.append(f"{indent}end")
-
-
-def _agent_edges(node, edges):
-    """Plain arrows: stimulus to handler to driver to interface; interface to monitor to its connections."""
-    for key, _, _ in node.members("stimulus"):
-        for _, child in node.subtree():
-            if any(True for _ in child.members("driver")):
-                edges.append(f"{_node('st', node.where, key)} --> {_node('handler', child.where)}")
-    for key, _, keys in node.members("driver"):
-        edges.append(f"{_node('handler', node.where)} --> {_node('drv', node.where, key)}")
-        edges += [f"{_node('drv', node.where, key)} --> {_node('if', node.where, interface)}" for interface in keys]
-    for key, _, keys in node.members("monitor"):
-        edges += [f"{_node('if', node.where, interface)} --> {_node('mon', node.where, key)}" for interface in keys]
-    for route in node.routes():
-        source = _node(_KINDS[route.source_kind], route.source_node.where, route.source_key)
-        edges.append(f"{source} --> {_node(_KINDS[route.target_kind], route.target_node.where, route.target_key)}")
-    for child in node.children:
-        _agent_edges(child, edges)
-
-
-def tb_diagram(plan):
-    """A simple UVM-style block diagram of the testbench, built from the checked plan alone.
-
-    Test, TbEnv, and agents are nested boxes; each agent holds its stimuli, handler,
-    drivers, monitors, and scoreboards. Interfaces sit between the testbench and the
-    DUT. Arrows follow the items and the JSON connections, without further detail.
-    """
-    tests = plan.simulation["tests"]
-    lines = ["flowchart TB", f'  subgraph n_test["Test: {", ".join(tests) or "none yet"}"]',
-             '    subgraph n_tb_env["TbEnv"]']
-    if plan.clock is not None:
-        lines.append('      n_clock["Clock agent"]')
-    if plan.reset is not None:
-        lines.append('      n_reset["Reset agent"]')
-    for top in plan.agents:
-        _agent_nodes(top, lines, "      ")
-    lines += ["    end", "  end"]
-    for top in plan.agents:
-        for node in top.walk():
-            lines += [f'  {_node("if", node.where, key)}[/"{key} interface"/]' for key in node.interfaces]
-    lines.append('  n_dut[["DUT"]]')
-
-    edges = []
-    for top in plan.agents:
-        _agent_edges(top, edges)
-    for top in plan.agents:
-        for node in top.walk():
-            edges += [f"{_node('if', node.where, key)} <--> n_dut" for key in node.interfaces]
-    if plan.clock is not None:
-        edges.append("n_clock --> n_dut")
-    if plan.reset is not None:
-        edges.append("n_reset --> n_dut")
-    lines += [f"  {edge}" for edge in dict.fromkeys(edges)]
-    return "\n".join(lines) + "\n"
-
-
-def connection_document(plan, config_name):
-    tests = plan.simulation["tests"]
-    lines = [f"# Testbench connections: {config_name}", "",
-             "Generated from the JSON and agent template. If you edit agent/infra wiring manually, update this document too.",
-             "", "## Diagram", "",
-             "The testbench in UVM style: the test, TbEnv, and each agent with its stimuli, handler,",
-             "drivers, monitors, and scoreboards. Interfaces connect it to the DUT. The sections below give",
-             "every connection in detail.", "",
-             "```mermaid", *tb_diagram(plan).rstrip("\n").split("\n"), "```",
-             "", "## Agent hierarchy", "", "- TbEnv"]
-    for control in ("clock", "reset"):
-        if getattr(plan, control) is not None:
-            lines.append(f"  - {control} ({control.capitalize()}Agent)")
-    for top in plan.agents:
-        for node in top.walk():
-            lines.append(f"{'  ' * len(node.path)}- {node.name} ({agent_class(node)})")
-        if plan.reset is not None:
-            lines.append(f"    - reset (passive ResetAgent, owned by {top.name})")
-    lines += ["", "## Tests", ""]
-    lines += [f"- `{name}` runs `{value}`" + (" (default)" if index == 0 else "")
-              for index, (name, value) in enumerate(tests.items())] or ["- None: add simulation.tests to the config."]
-    lines += ["", "## Components and connections by agent"]
-    for top in plan.agents:
-        for node in top.walk():
-            lines += ["", f"### {node.where}", "", f"- Infrastructure: `{agent_module(node).replace('.', '/')}.py`",
-                      f"- Connected module: `{node.connected_module or 'dut'}`",
-                      "- Handler: `handler`, a queue per driver and every interface below"]
-            transactions = {key: class_name for key, class_name, _ in node.transactions()}
-            for key, path in node.interfaces.items():
-                tagged = ", ".join(f"`{name}` [{tag}]" for name, tag in node.tags.get(key, {}).items())
-                lines.append(f"- Interface: `{key}` from `{path.name}`; observed values in `{key}.values`; "
-                             f"transaction `{transactions.get(key, '-')}`" + (f"; {tagged}" if tagged else ""))
-            lines += _member_lines(node, tests)
-            for child in node.children:
-                lines.append(f"- Child agent: `{child.name}`")
-            if node is top and plan.reset is not None:
-                lines.append("- Child agent: `reset` (passive ResetAgent)")
-            lines += ["", "#### Connections", "", "```text", *_connection_lines(node, tests), "```"]
-    if plan.clock is not None:
-        settings = plan.clock
-        lines += ["", "### clock", "", "- Interface: `clock`",
-                  f"- Monitor: `{'ClockMonitor' if settings['check_period'] else 'Monitor'}`"]
-        if settings["active"]:
-            lines.append("- Driver: `ClockDriver`")
-        lines += ["", "#### Connections", "", "```text"]
-        if settings["active"]:
-            lines.append(f"ClockDriver -> clock -> {settings['signal']}")
-        lines += [f"{settings['signal']} -> monitor -> clock.values",
-                  "clock -> TbEnv heartbeat_clock", "```"]
-    if plan.reset is not None:
-        signal = plan.reset["signal"]
-        for path, active in [("reset", True), *[(f"{top.where}.reset", False) for top in plan.agents]]:
-            lines += ["", f"### {path}", "", "- Handler: `ResetHandler` (extends Handler)",
-                      "- Interface: `reset`", "- Monitor: `ResetMonitor`"]
-            if active:
-                lines.append("- Driver: `ResetDriver`")
-            lines += ["", "#### Connections", "", "```text"]
-            if active:
-                lines.append(f"ResetDriver -> reset -> {signal}")
-            lines += [f"{signal} -> ResetMonitor -> reset.values", "ResetMonitor -> ResetHandler.observe_reset"]
-            lines += ["ResetHandler.wait_released -> TbEnv test stimulus" if active else
-                      "ResetMonitor -> parent.apply_reset / parent.release_reset", "```"]
-    return "\n".join(lines) + "\n"
-
-
 _RENDERERS = {"driver": _driver, "monitor": _monitor, "scoreboard": _scoreboard, "stimulus": _stimulus}
+_REFRESHED = ("tb_diagram.svg", "Makefile")
 
 
 def _parameter_arguments(parameters):
@@ -578,7 +396,7 @@ def plan_files(plan, config_name):
                     outgoing = sources.get((flag, class_name), set())
                     files[path] = "\n".join(_RENDERERS[flag](node, class_name, config_name, incoming, outgoing)) + "\n"
             files[Path(*agent_module(node).split(".")).with_suffix(".py")] = _agent(node, plan.directory, config_name)
-    files[Path("tb_connections.md")] = connection_document(plan, config_name)
+    files[Path("tb_diagram.svg")] = render(from_plan(plan))
     files[Path("Makefile")] = _makefile(plan, config_name)
     return files
 
@@ -607,7 +425,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="uvm-zero-generate", description=__doc__)
     parser.add_argument("config", help="the TB_CONFIG JSON file")
     parser.add_argument("--check", action="store_true", help="check and list the files without writing")
-    parser.add_argument("--refresh-infra", action="store_true", help="replace agent/infra, the connection docs and the Makefile from templates; preserve protocol code")
+    parser.add_argument("--refresh-infra", action="store_true", help="replace agent/infra, the diagram and the Makefile from templates; preserve protocol code")
     args = parser.parse_args(argv)
     config = Path(args.config)
     try:
@@ -623,7 +441,7 @@ def main(argv=None):
     out = plan.directory
     writes = []
     for path in sorted(files):
-        refresh = args.refresh_infra and ("infra" in path.parts or path.name in ("tb_connections.md", "Makefile"))
+        refresh = args.refresh_infra and ("infra" in path.parts or path.name in _REFRESHED)
         status = "refresh" if refresh and (out / path).exists() else "exists" if (out / path).exists() else "missing"
         print(f"  {status:8} {out / path}")
         if status != "exists":
@@ -632,6 +450,8 @@ def main(argv=None):
         print(f"  unused   {path} (not named by this configuration)")
     for path, callback, route in missing_callbacks(plan):
         print(f'  callback {path}: add def {callback}(...) for "{route.source} -> {route.target}"')
+    for problem in check(from_plan(plan)).problems:
+        print(f"  diagram  warning: {problem}", file=sys.stderr)
     if args.check:
         return 0
 
@@ -641,7 +461,7 @@ def main(argv=None):
         with open(target, "w" if refresh else "x", encoding="utf-8") as file:
             file.write(files[path])
         print(f"wrote    {target}")
-    print("Existing protocol and infra files are preserved. After changing topology, review --check --refresh-infra, then use --refresh-infra to replace infra, docs and the Makefile.")
+    print("Existing protocol and infra files are preserved. After changing topology, review --check --refresh-infra, then use --refresh-infra to replace infra, the diagram and the Makefile.")
     return 0
 
 

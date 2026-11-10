@@ -965,10 +965,11 @@ async def listed_monitors_each_watch_their_own_interface(dut):
 
     source = (directory / "mat_mul" / "agent" / "mat_mul_input_monitor.py").read_text()
     assert "self.interfaces['input']" in source and "'output'" not in source
-    document = (directory / "tb_connections.md").read_text()
-    assert ("input_monitor (MatMulInputMonitor) -> scoreboard.on_input_monitor_callback "
-            "(scoreboard.callback: history, heartbeat)") in document
-    assert "Monitor `output_monitor`: `MatMulOutputMonitor`, using `output`" in document
+    assert not (directory / "tb_connections.md").exists()
+    _, rects, edges = svg_layout((directory / "tb_diagram.svg").read_text())
+    assert rects["monitor:mat_mul:output_monitor"][4] == "monitor"
+    for monitor in ("input_monitor", "output_monitor"):
+        assert f"monitor:mat_mul:{monitor} -> scoreboard:mat_mul:scoreboard" in edges, edges
 
 
 @cocotb.test()
@@ -1087,43 +1088,138 @@ async def simulation_settings_are_checked(dut):
         assert any(expected in line for line in problems), (body, problems)
 
 
-def check_mermaid(text):
-    """Structural checks for the generated Mermaid: balanced subgraphs, quoted labels,
-    and every edge between declared nodes."""
-    import re
-    lines = text.splitlines()
-    assert lines[0] == "flowchart TB", lines[0]
-    subgraphs = re.findall(r"^\s*subgraph (n_\w+)\[\"[^\"]*\"\]$", text, re.M)
-    assert len(subgraphs) == sum(line.strip() == "end" for line in lines), text
-    nodes = set(re.findall(r"^\s*(n_\w+)[\[(/]", text, re.M)) | set(subgraphs)
-    for line in lines:
-        assert line.count('"') % 2 == 0, line
-    edge_lines = [line for line in lines if "-->" in line or "-.->" in line]
-    edges = [re.fullmatch(r"\s*(n_\w+) (?:-->|<-->) (n_\w+)", line) for line in edge_lines]
-    assert all(edges), [line for line, edge in zip(edge_lines, edges) if not edge]
-    for edge in edges:
-        assert edge[1] in nodes and edge[2] in nodes, edge[0]
-    return nodes
+def svg_layout(text):
+    """The rectangles and wires of a generated diagram, after checking it is well-formed SVG."""
+    from xml.etree import ElementTree
+    root = ElementTree.fromstring(text)
+    namespace = "{http://www.w3.org/2000/svg}"
+    rects = {}
+    for rect in root.iter(namespace + "rect"):
+        if "data-id" in rect.attrib:
+            x, y, w, h = (float(rect.get(key)) for key in ("x", "y", "width", "height"))
+            rects[rect.get("data-id")] = (x, y, x + w, y + h, rect.get("data-kind"))
+    edges = {edge for group in root.iter(namespace + "g") for edge in group.get("data-edges", "").split("|") if edge}
+    return float(root.get("width")), rects, edges
 
 
 @cocotb.test()
-async def the_connection_document_draws_the_testbench(dut):
+async def the_generator_draws_the_testbench(dut):
     directory = generator_project()
     assert generate_main([str(directory / "tb.json")]) == 0
-    document = (directory / "tb_connections.md").read_text()
-    diagram = document.split("```mermaid\n", 1)[1].split("```", 1)[0]
-    nodes = check_mermaid(diagram)
-    assert {"n_test", "n_tb_env", "n_agent_gen", "n_agent_gen_slave_0", "n_handler_gen", "n_if_gen_left_port",
-            "n_drv_gen_driver", "n_mon_gen_left_monitor", "n_sb_gen_scoreboard", "n_st_gen_traffic"} <= nodes
-    # UVM style: nested boxes, class names, plain arrows without method or callback labels.
-    assert '["GenSpanDriver"]' in diagram and '"left agent"' in diagram and "|" not in diagram.replace("<br/>", "")
-    for edge in ("n_st_gen_traffic --> n_handler_gen",
-                 "n_handler_gen --> n_drv_gen_driver",
-                 "n_drv_gen_driver --> n_if_gen_left_port",      # spans its child agents
-                 "n_drv_gen_driver --> n_if_gen_slave_1_port",
-                 "n_if_gen_left_port <--> n_dut",
-                 "n_if_gen_left_port --> n_mon_gen_left_monitor",
-                 "n_mon_gen_slave_0_monitor --> n_sb_gen_scoreboard"):
-        assert edge in diagram, edge
-    assert document.index("## Diagram") < document.index("## Agent hierarchy")
+    width, rects, edges = svg_layout((directory / "tb_diagram.svg").read_text())
+    for edge in ("stimulus:gen:traffic -> handler:gen", "stimulus:gen:traffic -> handler:gen.left",
+                 "handler:gen -> driver:gen:driver",
+                 "driver:gen:driver -> if:gen.left.port",       # spans its child agents
+                 "driver:gen:driver -> if:gen.slave_1.port",
+                 "if:gen.left.port -> dut",
+                 "if:gen.left.port -> monitor:gen.left:monitor",
+                 "monitor:gen.slave_0:monitor -> scoreboard:gen:scoreboard",
+                 # A stimulus reads interface values, which the monitors keep current.
+                 "monitor:gen.left:monitor -> stimulus:gen:traffic",
+                 "monitor:gen.named:monitor -> stimulus:gen:traffic"):
+        assert edge in edges, edge
+    for edge in edges:
+        assert all(end in rects or end in ("clock", "reset") for end in edge.split(" -> ")), edge
 
+    # The DUT in the centre, inputs on its left, active agents above, passive agents below.
+    dut_left, dut_top, dut_right, dut_bottom, _ = rects["dut"]
+    assert abs((dut_left + dut_right) / 2 - width / 2) < 1
+    for name, (left, top, right, bottom, kind) in rects.items():
+        if kind == "input":
+            assert right < dut_left and top >= dut_top and bottom <= dut_bottom, name
+        elif kind == "output":
+            assert left > dut_right, name
+    for active in ("driver:gen:driver", "handler:gen.left", "monitor:gen.left:monitor", "agent:gen"):
+        assert rects[active][3] < dut_top, active
+    for passive in ("monitor:gen.named:monitor", "monitor:gen.slave_1:monitor", "agent:gen.slave_0"):
+        assert rects[passive][1] > dut_bottom, passive
+
+    # No component box overlaps another.
+    parts = [(name, r) for name, r in rects.items() if not name.startswith("agent:")]
+    for index, (name, a) in enumerate(parts):
+        for other, b in parts[index + 1:]:
+            assert a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1], (name, other)
+    assert not (directory / "tb_connections.md").exists()
+
+
+
+@cocotb.test()
+async def the_readme_architecture_diagram_is_current(dut):
+    from uvm_zero_builder.diagram import architecture, render
+    path = Path(__file__).resolve().parents[1] / "docs" / "architecture.svg"
+    assert path.read_text() == render(architecture()), "run: python -m uvm_zero_builder.diagram docs/architecture.svg"
+    _, rects, edges = svg_layout(path.read_text())
+    assert {"mon -> st", "mon -> sb", "drv -> if_in", "if_out -> omon"} <= edges
+    assert rects["active"][3] < rects["dut"][1] < rects["dut"][3] < rects["passive"][1]
+
+
+def diagram_cases():
+    """The README diagram, every example testbench, and the generator fixture."""
+    from uvm_zero_builder.diagram import architecture, from_plan
+    root = Path(__file__).resolve().parents[1] / "src" / "examples"
+    yield "architecture", architecture()
+    for config in ("matrix_multiplier/tb_impl/tb.json", "matrix_multiplier/tb/tb.json", "axi/tb/tb.json"):
+        yield config, from_plan(load_plan(root / config))
+    yield "generator fixture", from_plan(load_plan(generator_project() / "tb.json"))
+
+
+@cocotb.test()
+async def every_diagram_passes_its_audit(dut):
+    # Crossings each diagram may have at most; a change that adds any fails here.
+    budget = {"architecture": 0, "matrix_multiplier/tb_impl/tb.json": 1, "matrix_multiplier/tb/tb.json": 1,
+              "axi/tb/tb.json": 0, "generator fixture": 12}
+    from uvm_zero_builder.diagram import check
+    for name, diagram in diagram_cases():
+        report = check(diagram)
+        assert report.problems == [], (name, report.problems)
+        assert report.crossings <= budget[name], (name, report.crossings)
+
+
+@cocotb.test()
+async def the_diagram_audit_catches_broken_drawings(dut):
+    from uvm_zero_builder.diagram import Rect, audit, best_layout
+    from uvm_zero_builder.diagram import architecture
+    layout, report = best_layout(architecture())
+    assert report.problems == []
+
+    # A component moved on top of another.
+    saved = layout.rect["drv"]
+    layout.rect["drv"] = layout.rect["hd"]
+    assert any("overlaps" in problem for problem in audit(layout).problems)
+    layout.rect["drv"] = saved
+
+    # The DUT stretched across the wires around it.
+    saved = layout.dut
+    layout.dut = Rect(saved.x - 400, saved.y, saved.w + 800, saved.h)
+    assert any("runs through dut" in problem for problem in audit(layout).problems)
+    layout.dut = saved
+
+    # A net that lost the stem to its target: it no longer reaches it, and has no arrow there.
+    net = next(item for item in layout.nets if ("hd", "drv") in item.edges)
+    lines = net.lines
+    net.lines = [line for line in lines if not line[1]]
+    problems = audit(layout).problems
+    assert any("does not reach drv" in problem for problem in problems), problems
+    assert any("no arrow into drv" in problem for problem in problems), problems
+    net.lines = lines
+
+    # Two different nets laid on top of each other.
+    a, b = [item for item in layout.nets if item.tracks][:2]
+    saved = b.tracks[0].y, b.tracks[0].stems
+    b.tracks[0].y, b.tracks[0].stems = a.tracks[0].y, a.tracks[0].stems
+    assert any("run together" in problem for problem in audit(layout).problems)
+    b.tracks[0].y, b.tracks[0].stems = saved
+    assert audit(layout).problems == []
+
+
+@cocotb.test()
+async def clock_and_reset_go_where_the_wiring_is_cleanest(dut):
+    from uvm_zero_builder.diagram import _Layout, _default_rows, audit, best_layout
+    for name, diagram in diagram_cases():
+        default = audit(_Layout(diagram, _default_rows(diagram)))
+        layout, best = best_layout(diagram)
+        assert best.score <= default.score, name
+        # Agents keep their own rows: active above the DUT, passive below.
+        for box in diagram.boxes:
+            if not box.simple:
+                assert layout.row_of[box.id] == ("top" if box.active else "bottom"), (name, box.id)
