@@ -4,41 +4,40 @@ Generated from the JSON and agent template. If you edit agent/infra wiring manua
 
 ## Diagram
 
-Agents are boxes; parallelograms are interfaces, labelled with their Txn class. Arrows follow
-the items: stimulus, handler queue, driver, interface, DUT, monitor, then each JSON connection,
-labelled with the callback it calls. Dotted arrows show tests and resets.
+The testbench in UVM style: the test, TbEnv, and each agent with its stimuli, handler,
+drivers, monitors, and scoreboards. Interfaces connect it to the DUT. The sections below give
+every connection in detail.
 
 ```mermaid
-flowchart LR
-  n_dut[["DUT"]]
-  subgraph n_tb_env["TbEnv"]
-    n_clock["clock<br/>ClockAgent"]
-    n_reset["reset<br/>ResetAgent"]
-    subgraph n_agent_mat_mul["mat_mul : MatMulAgent"]
-      n_handler_mat_mul[("handler")]
-      n_if_mat_mul_ip[/"ip<br/>MatMulIpTxn"/]
-      n_if_mat_mul_op[/"op<br/>MatMulOpTxn"/]
-      n_mon_mat_mul_ip_monitor["ip_monitor<br/>MatMulIpMonitor"]
-      n_mon_mat_mul_op_monitor["op_monitor<br/>MatMulOpMonitor"]
-      n_drv_mat_mul_ip_driver["ip_driver<br/>MatMulIpDriver"]
-      n_sb_mat_mul_scoreboard["scoreboard<br/>MatMulScoreboard"]
-      n_st_mat_mul_traffic["traffic<br/>MatMulTraffic"]
+flowchart TB
+  subgraph n_test["Test: smoke"]
+    subgraph n_tb_env["TbEnv"]
+      n_clock["Clock agent"]
+      n_reset["Reset agent"]
+      subgraph n_agent_mat_mul["mat_mul agent"]
+        n_handler_mat_mul["Handler"]
+        n_st_mat_mul_traffic["MatMulTraffic"]
+        n_drv_mat_mul_ip_driver["MatMulIpDriver"]
+        n_mon_mat_mul_ip_monitor["MatMulIpMonitor"]
+        n_mon_mat_mul_op_monitor["MatMulOpMonitor"]
+        n_sb_mat_mul_scoreboard["MatMulScoreboard"]
+      end
     end
   end
-  n_drv_mat_mul_ip_driver -->|drive_values| n_if_mat_mul_ip
-  n_handler_mat_mul -->|pop| n_drv_mat_mul_ip_driver
-  n_if_mat_mul_ip -->|values| n_mon_mat_mul_ip_monitor
-  n_if_mat_mul_ip <-->|signals| n_dut
-  n_if_mat_mul_op -->|values| n_mon_mat_mul_op_monitor
-  n_if_mat_mul_op <-->|signals| n_dut
-  n_mon_mat_mul_ip_monitor -->|on_ip_monitor_callback| n_sb_mat_mul_scoreboard
-  n_mon_mat_mul_op_monitor -->|on_op_monitor_callback| n_sb_mat_mul_scoreboard
-  n_st_mat_mul_traffic -->|queue| n_handler_mat_mul
-  n_clock -->|clock| n_dut
-  n_reset -->|reset| n_dut
-  n_reset -.->|resets| n_agent_mat_mul
-  n_test_smoke(["test smoke"])
-  n_test_smoke -.->|runs| n_st_mat_mul_traffic
+  n_if_mat_mul_ip[/"ip interface"/]
+  n_if_mat_mul_op[/"op interface"/]
+  n_dut[["DUT"]]
+  n_st_mat_mul_traffic --> n_handler_mat_mul
+  n_handler_mat_mul --> n_drv_mat_mul_ip_driver
+  n_drv_mat_mul_ip_driver --> n_if_mat_mul_ip
+  n_if_mat_mul_ip --> n_mon_mat_mul_ip_monitor
+  n_if_mat_mul_op --> n_mon_mat_mul_op_monitor
+  n_mon_mat_mul_ip_monitor --> n_sb_mat_mul_scoreboard
+  n_mon_mat_mul_op_monitor --> n_sb_mat_mul_scoreboard
+  n_if_mat_mul_ip <--> n_dut
+  n_if_mat_mul_op <--> n_dut
+  n_clock --> n_dut
+  n_reset --> n_dut
 ```
 
 ## Agent hierarchy

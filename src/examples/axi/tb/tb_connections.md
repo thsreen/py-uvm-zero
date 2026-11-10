@@ -4,48 +4,46 @@ Generated from the JSON and agent template. If you edit agent/infra wiring manua
 
 ## Diagram
 
-Agents are boxes; parallelograms are interfaces, labelled with their Txn class. Arrows follow
-the items: stimulus, handler queue, driver, interface, DUT, monitor, then each JSON connection,
-labelled with the callback it calls. Dotted arrows show tests and resets.
+The testbench in UVM style: the test, TbEnv, and each agent with its stimuli, handler,
+drivers, monitors, and scoreboards. Interfaces connect it to the DUT. The sections below give
+every connection in detail.
 
 ```mermaid
-flowchart LR
-  n_dut[["DUT"]]
-  subgraph n_tb_env["TbEnv"]
-    n_clock["clock<br/>ClockAgent"]
-    n_reset["reset<br/>ResetAgent"]
-    subgraph n_agent_xbar["xbar : XbarAgent"]
-      n_handler_xbar[("handler")]
-      n_st_xbar_smoke["smoke<br/>XbarSmoke"]
-      subgraph n_agent_xbar_initiator["initiator : XbarInitiatorAgent"]
-        n_handler_xbar_initiator[("handler")]
-        n_if_xbar_initiator_req[/"req<br/>XbarInitiatorReqTxn"/]
-        n_if_xbar_initiator_resp[/"resp<br/>XbarInitiatorRespTxn"/]
-        n_drv_xbar_initiator_req_driver["req_driver<br/>XbarInitiatorReqDriver"]
-      end
-      subgraph n_agent_xbar_target["target : XbarTargetAgent"]
-        n_handler_xbar_target[("handler")]
-        n_if_xbar_target_req[/"req<br/>XbarTargetReqTxn"/]
-        n_if_xbar_target_resp[/"resp<br/>XbarTargetRespTxn"/]
-        n_drv_xbar_target_resp_driver["resp_driver<br/>XbarTargetRespDriver"]
+flowchart TB
+  subgraph n_test["Test: smoke"]
+    subgraph n_tb_env["TbEnv"]
+      n_clock["Clock agent"]
+      n_reset["Reset agent"]
+      subgraph n_agent_xbar["xbar agent"]
+        n_st_xbar_smoke["XbarSmoke"]
+        subgraph n_agent_xbar_initiator["initiator agent"]
+          n_handler_xbar_initiator["Handler"]
+          n_drv_xbar_initiator_req_driver["XbarInitiatorReqDriver"]
+        end
+        subgraph n_agent_xbar_target["target agent"]
+          n_handler_xbar_target["Handler"]
+          n_drv_xbar_target_resp_driver["XbarTargetRespDriver"]
+        end
       end
     end
   end
-  n_drv_xbar_initiator_req_driver -->|drive_values| n_if_xbar_initiator_req
-  n_drv_xbar_target_resp_driver -->|drive_values| n_if_xbar_target_resp
-  n_handler_xbar_initiator -->|pop| n_drv_xbar_initiator_req_driver
-  n_handler_xbar_target -->|pop| n_drv_xbar_target_resp_driver
-  n_if_xbar_initiator_req <-->|signals| n_dut
-  n_if_xbar_initiator_resp <-->|signals| n_dut
-  n_if_xbar_target_req <-->|signals| n_dut
-  n_if_xbar_target_resp <-->|signals| n_dut
-  n_st_xbar_smoke -->|queue| n_handler_xbar_initiator
-  n_st_xbar_smoke -->|queue| n_handler_xbar_target
-  n_clock -->|clock| n_dut
-  n_reset -->|reset| n_dut
-  n_reset -.->|resets| n_agent_xbar
-  n_test_smoke(["test smoke"])
-  n_test_smoke -.->|runs| n_st_xbar_smoke
+  n_if_xbar_initiator_req[/"req interface"/]
+  n_if_xbar_initiator_resp[/"resp interface"/]
+  n_if_xbar_target_req[/"req interface"/]
+  n_if_xbar_target_resp[/"resp interface"/]
+  n_dut[["DUT"]]
+  n_st_xbar_smoke --> n_handler_xbar_initiator
+  n_st_xbar_smoke --> n_handler_xbar_target
+  n_handler_xbar_initiator --> n_drv_xbar_initiator_req_driver
+  n_drv_xbar_initiator_req_driver --> n_if_xbar_initiator_req
+  n_handler_xbar_target --> n_drv_xbar_target_resp_driver
+  n_drv_xbar_target_resp_driver --> n_if_xbar_target_resp
+  n_if_xbar_initiator_req <--> n_dut
+  n_if_xbar_initiator_resp <--> n_dut
+  n_if_xbar_target_req <--> n_dut
+  n_if_xbar_target_resp <--> n_dut
+  n_clock --> n_dut
+  n_reset --> n_dut
 ```
 
 ## Agent hierarchy

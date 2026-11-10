@@ -45,133 +45,44 @@ tests/                framework simulations
 
 ## Architecture
 
-How a transaction moves through a `uvm_zero_base` testbench:
+A `uvm_zero_base` testbench in UVM terms:
 
 ```mermaid
-flowchart LR
-  test(["test in simulation.tests"]) -.->|runs| stim["Stimulus<br/>registered with an agent"]
-  stim -->|"queue(txn, driver, max_delay)"| handler[("Agent handler<br/>one queue per driver")]
-  handler -->|"pop, then wait the delay"| drv["Driver.drive(txn)"]
-  drv -->|"drive_values(**txn.signal_values())"| sig[/"Interface signals"/]
-  sig <-->|"pins"| dut[["DUT"]]
-  sig -->|"sampled on every change"| vals[/"interface.values<br/>read only"/]
-  vals -->|"read at the clock edge"| mon["Monitor.run()"]
-  mon -->|"publish(Txn.from_values(values))"| sb["Scoreboard<br/>on_source_callback(txn)"]
-  sb -->|"publish(txn)"| next["another Scoreboard<br/>or a Stimulus"]
-  vals -.->|"current status"| stim
+flowchart TB
+  subgraph test["Test"]
+    subgraph env["TbEnv"]
+      clk["Clock agent"]
+      rst["Reset agent"]
+      subgraph agent["Agent"]
+        stim["Stimulus"]
+        handler["Handler"]
+        drv["Driver"]
+        mon["Monitor"]
+        sb["Scoreboard"]
+      end
+    end
+  end
+  ifc[/"Interface"/]
+  dut[["DUT"]]
+  stim --> handler
+  handler --> drv
+  drv --> ifc
+  ifc --> mon
+  mon --> sb
+  ifc <--> dut
+  clk --> dut
+  rst --> dut
 ```
 
-The generator draws the same picture for a real testbench, from its `tb.json`, at the
-top of the `tb_connections.md` it writes. The matrix multiplier's agent, for example:
+A Stimulus plays the part of a UVM sequence, the Handler that of a sequencer, and an
+Interface that of a virtual interface. A test names the stimulus to run.
 
-- [Matrix multiplier, filled in](src/examples/matrix_multiplier/tb_impl/tb_connections.md#diagram):
-  the `mat_mul` agent with its `ip` and `op` interfaces, `ip_driver`, two monitors,
-  scoreboard, and `traffic` stimulus, run by test `smoke`.
-- [Matrix multiplier, as generated](src/examples/matrix_multiplier/tb/tb_connections.md#diagram):
-  the same structure, straight from the generator.
-- [AXI crossbar](src/examples/axi/tb/tb_connections.md#diagram): the `xbar` agent
-  with `initiator` and `target` child agents.
+The generator draws this diagram for each real testbench from its `tb.json`, at the top
+of the `tb_connections.md` it writes:
 
-The classes and what each agent holds:
-
-```mermaid
-classDiagram
-  direction LR
-  class Component {
-    +configure()
-    +connect()
-    +run()
-    +extract_phase()
-    +check_phase()
-    +report_phase()
-    +final_phase()
-    +apply_reset()
-    +release_reset()
-    +publish(txn)
-    +add_callback(callback)
-  }
-  class TbEnv {
-    +stimulus
-    +run_test()
-  }
-  class Agent {
-    +drivers
-    +monitors
-    +scoreboards
-    +stimuli
-    +agents
-    +handler
-    +interfaces
-    +connect_callbacks()
-  }
-  class Handler {
-    +queue(txn, driver, delay, max_delay)
-    +interfaces
-  }
-  class Driver {
-    +drive(txn)
-    +drive_idle()
-    +drive_values(...)
-    +max_delay
-  }
-  class Monitor {
-    +run()
-    +publish(txn, interface)
-  }
-  class Scoreboard {
-    +subscribe(source, callback)
-    +check_phase()
-  }
-  class Stimulus {
-    +run()
-    +queue(txn, driver)
-    +execute()
-  }
-  class Interface {
-    +signals
-    +parameters
-    +clocks
-    +resets
-    +values
-  }
-  class Transaction {
-    +from_values(values)
-    +signal_values()
-    +idle_values()
-  }
-  Component <|-- TbEnv
-  Component <|-- Agent
-  Component <|-- Handler
-  Component <|-- Driver
-  Component <|-- Monitor
-  Component <|-- Scoreboard
-  Component <|-- Stimulus
-  TbEnv *-- Agent : top agents
-  Agent *-- Handler : one
-  Agent *-- Driver : drivers
-  Agent *-- Monitor : monitors
-  Agent *-- Scoreboard : scoreboards
-  Agent *-- Stimulus : stimuli
-  Agent *-- Agent : child agents
-  Agent o-- Interface : interfaces
-  Driver ..> Interface : writes signals
-  Monitor ..> Interface : updates values
-  Transaction <|-- MatMulIpTxn : generated per interface
-```
-
-From a JSON description to a running simulation:
-
-```mermaid
-flowchart LR
-  json["tb.json<br/>interfaces/*.json"] -->|"uvm-zero-generate"| gen{{"check, then write<br/>only missing files"}}
-  gen --> infra["agent/infra/*.py<br/>agent wiring"]
-  gen --> user["drivers, monitors, scoreboards,<br/>stimuli, Txn classes<br/>you fill these in"]
-  gen --> doc["tb_connections.md<br/>with its diagram"]
-  gen --> mk["Makefile"]
-  mk -->|"make, make test_name, make tests"| sim["cocotb and the simulator:<br/>TbEnv builds from tb.json"]
-  infra --> sim
-  user --> sim
-```
+- [Matrix multiplier agent, filled in](src/examples/matrix_multiplier/tb_impl/tb_connections.md#diagram)
+- [Matrix multiplier agent, as generated](src/examples/matrix_multiplier/tb/tb_connections.md#diagram)
+- [AXI crossbar agents](src/examples/axi/tb/tb_connections.md#diagram)
 
 ## Lifecycle
 
