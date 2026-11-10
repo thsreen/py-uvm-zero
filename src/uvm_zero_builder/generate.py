@@ -7,6 +7,7 @@ agent/infra files, the connection document and the Makefile, never protocol impl
 import argparse
 from importlib.resources import files as resources
 from pathlib import Path
+import re
 from string import Template
 import sys
 
@@ -354,10 +355,101 @@ def _connection_lines(node, tests):
     return lines
 
 
+_KINDS = {"driver": "drv", "monitor": "mon", "scoreboard": "sb", "stimulus": "st"}
+
+
+def _node(*parts):
+    """A Mermaid node id: "n_" plus word characters, never a Mermaid keyword such as end."""
+    return "n_" + "_".join(re.sub(r"\W", "_", part) for part in parts if part)
+
+
+def _agent_nodes(node, lines, indent):
+    """One subgraph per agent: its handler, interfaces, components, and child agents."""
+    lines.append(f'{indent}subgraph {_node("agent", node.where)}["{node.name} : {agent_class(node)}"]')
+    inner = indent + "  "
+    lines.append(f'{inner}{_node("handler", node.where)}[("handler")]')
+    transactions = {key: class_name for key, class_name, _ in node.transactions()}
+    for key in node.interfaces:
+        lines.append(f'{inner}{_node("if", node.where, key)}[/"{key}<br/>{transactions[key]}"/]')
+    for flag in COMPONENTS:
+        for key, value, _ in node.members(flag):
+            name = value if isinstance(value, str) else flag.capitalize()
+            lines.append(f'{inner}{_node(_KINDS[flag], node.where, key)}["{key}<br/>{name}"]')
+    for child in node.children:
+        _agent_nodes(child, lines, inner)
+    lines.append(f"{indent}end")
+
+
+def _agent_edges(node, edges):
+    """Data flow inside one agent, then its JSON connections."""
+    for key, _, _ in node.members("stimulus"):
+        stimulus = _node("st", node.where, key)
+        for prefix, child in node.subtree():
+            if any(True for _ in child.members("driver")):
+                edges.add(f"{stimulus} -->|queue| {_node('handler', child.where)}")
+    for key, _, keys in node.members("driver"):
+        driver = _node("drv", node.where, key)
+        edges.add(f"{_node('handler', node.where)} -->|pop| {driver}")
+        for interface in keys:
+            edges.add(f"{driver} -->|drive_values| {_node('if', node.where, interface)}")
+    for key, _, keys in node.members("monitor"):
+        for interface in keys:
+            edges.add(f"{_node('if', node.where, interface)} -->|values| {_node('mon', node.where, key)}")
+    for key in node.interfaces:
+        edges.add(f"{_node('if', node.where, key)} <-->|signals| n_dut")
+    for route in node.routes():
+        source = _node(_KINDS[route.source_kind], route.source_node.where, route.source_key)
+        target = _node(_KINDS[route.target_kind], route.target_node.where, route.target_key)
+        edges.add(f"{source} -->|{route.callback}| {target}")
+    for child in node.children:
+        _agent_edges(child, edges)
+
+
+def tb_diagram(plan):
+    """A Mermaid flowchart of the testbench, built from the checked plan alone.
+
+    GitHub and most Markdown viewers render it. Agents are boxes holding their
+    handler, interfaces (parallelograms), and components; arrows show how items
+    flow: stimulus -> handler queue -> driver -> interface -> DUT -> interface ->
+    monitor -> connected components, labelled with the callback each one calls.
+    """
+    lines = ["flowchart LR", '  n_dut[["DUT"]]', '  subgraph n_tb_env["TbEnv"]']
+    if plan.clock is not None:
+        lines.append('    n_clock["clock<br/>ClockAgent"]')
+    if plan.reset is not None:
+        lines.append('    n_reset["reset<br/>ResetAgent"]')
+    for top in plan.agents:
+        _agent_nodes(top, lines, "    ")
+    lines.append("  end")
+
+    edges = set()
+    for top in plan.agents:
+        _agent_edges(top, edges)
+    lines += [f"  {edge}" for edge in sorted(edges)]
+    if plan.clock is not None:
+        lines.append("  n_clock -->|clock| n_dut")
+    if plan.reset is not None:
+        lines.append("  n_reset -->|reset| n_dut")
+        lines += [f"  n_reset -.->|resets| {_node('agent', top.where)}" for top in plan.agents]
+    for name, class_name in plan.simulation["tests"].items():
+        lines.append(f'  {_node("test", name)}(["test {name}"])')
+        for top in plan.agents:
+            for node in top.walk():
+                for key, value, _ in node.members("stimulus"):
+                    if value == class_name:
+                        lines.append(f"  {_node('test', name)} -.->|runs| {_node('st', node.where, key)}")
+    return "\n".join(lines) + "\n"
+
+
 def connection_document(plan, config_name):
     tests = plan.simulation["tests"]
     lines = [f"# Testbench connections: {config_name}", "",
              "Generated from the JSON and agent template. If you edit agent/infra wiring manually, update this document too.",
+             "", "## Diagram", "",
+             "Agents are boxes; parallelograms are interfaces, labelled with their Txn class. Arrows follow",
+             "the items: stimulus, handler queue, driver, interface, DUT, monitor, then each JSON connection,",
+             "labelled with the callback it calls. Dotted arrows show tests and resets.", "",
+             "```mermaid", *tb_diagram(plan).rstrip("\n").split("\n"), "```",
              "", "## Agent hierarchy", "", "- TbEnv"]
     for control in ("clock", "reset"):
         if getattr(plan, control) is not None:

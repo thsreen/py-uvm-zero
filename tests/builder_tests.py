@@ -1086,3 +1086,42 @@ async def simulation_settings_are_checked(dut):
         problems = config_problems(body)
         assert any(expected in line for line in problems), (body, problems)
 
+
+def check_mermaid(text):
+    """Structural checks for the generated Mermaid: balanced subgraphs, quoted labels,
+    and every edge between declared nodes."""
+    import re
+    lines = text.splitlines()
+    assert lines[0] == "flowchart LR", lines[0]
+    subgraphs = re.findall(r"^\s*subgraph (n_\w+)\[\"[^\"]*\"\]$", text, re.M)
+    assert len(subgraphs) == sum(line.strip() == "end" for line in lines), text
+    nodes = set(re.findall(r"^\s*(n_\w+)[\[(/]", text, re.M)) | set(subgraphs)
+    for line in lines:
+        assert line.count('"') % 2 == 0, line
+    edge_lines = [line for line in lines if "-->" in line or "-.->" in line]
+    edges = [re.fullmatch(r"\s*(n_\w+) (?:-->|<-->|-\.->)\|\w+\| (n_\w+)", line) for line in edge_lines]
+    assert all(edges), [line for line, edge in zip(edge_lines, edges) if not edge]
+    for edge in edges:
+        assert edge[1] in nodes and edge[2] in nodes, edge[0]
+    return nodes
+
+
+@cocotb.test()
+async def the_connection_document_draws_the_testbench(dut):
+    directory = generator_project()
+    assert generate_main([str(directory / "tb.json")]) == 0
+    document = (directory / "tb_connections.md").read_text()
+    diagram = document.split("```mermaid\n", 1)[1].split("```", 1)[0]
+    nodes = check_mermaid(diagram)
+    assert {"n_agent_gen", "n_agent_gen_slave_0", "n_handler_gen", "n_if_gen_left_port",
+            "n_drv_gen_driver", "n_mon_gen_left_monitor", "n_sb_gen_scoreboard", "n_st_gen_traffic"} <= nodes
+    for edge in ("n_st_gen_traffic -->|queue| n_handler_gen",
+                 "n_handler_gen -->|pop| n_drv_gen_driver",
+                 "n_drv_gen_driver -->|drive_values| n_if_gen_left_port",      # spans its child agents
+                 "n_drv_gen_driver -->|drive_values| n_if_gen_slave_1_port",
+                 "n_if_gen_left_port <-->|signals| n_dut",
+                 "n_if_gen_left_port -->|values| n_mon_gen_left_monitor",
+                 "n_mon_gen_slave_0_monitor -->|on_slave_monitor_callback| n_sb_gen_scoreboard"):
+        assert edge in diagram, edge
+    assert document.index("## Diagram") < document.index("## Agent hierarchy")
+
