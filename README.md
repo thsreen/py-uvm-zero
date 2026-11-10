@@ -35,9 +35,6 @@ py-uvm-zero keeps the parts of UVM that pay off and drops the rest:
 
 ![Testbench architecture](docs/architecture.svg)
 
-The DUT sits in the centre, with input interfaces on its left and output interfaces
-on its right. Active agents, those that drive, sit above it; passive agents sit
-below. The clock and reset agents go wherever their wires cross least.
 
 | py-uvm-zero | UVM | Role |
 | --- | --- | --- |
